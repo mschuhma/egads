@@ -47,9 +47,14 @@ public class Egads {
         
         // Set the input type.
         InputProcessor ip = null;
+        System.out.println("INPUT " + p.getProperty("INPUT"));
         if (p.getProperty("INPUT") == null || p.getProperty("INPUT").equals("CSV")) {
             ip = new FileInputProcessor(args[1]);
-        } else {
+        }
+        else if (p.getProperty("INPUT").equals("BATCH")) {
+            ip = new BatchFileInputProcessor(args[1]);
+        }
+        else {
             ip = new StdinProcessor();
         }
         
