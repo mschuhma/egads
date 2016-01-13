@@ -14,7 +14,9 @@ import com.yahoo.egads.data.TimeSeries;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 
 /*
@@ -32,33 +34,56 @@ public class BatchFileInputProcessor implements InputProcessor {
     private String file = null;
     private String fileName = null;
     private BufferedReader br = null;
-    private boolean fillMissing = false;
 
     private final static String COLUMN_DELIMITER = ",";
 
     public BatchFileInputProcessor(String file) {
         this.file = file;
-        this.fileName = (new File(file)).getName() + "_egads_output.gz";
-
+        this.fileName = "egads_output_"+(new File(file)).getName();
     }
 
     public void processInput(Properties p) throws Exception {
 
-        // Setup config
-        if (p.getProperty("FILL_MISSING") != null && p.getProperty("FILL_MISSING").equals("1")) {
-            fillMissing = true;
-            // TODO implement fill missing values with zero
-        }
         // Initialize output writer
-        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE"))
+        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
             BatchFileUtils.getOrCreatePermanentOutputWriter(this.fileName);
+        }
+
+        // Make full pre-scan to find min and max time
+        long minTime = Long.MAX_VALUE;
+        long maxTime = Long.MIN_VALUE;
+        Set<Long> timeStamps = new HashSet<Long>();
+
+        // Filling missing values as this is a spare data file format.
+        // The FILL_MISSING property is ignored, and all missing values are set to 0 instead
+
+        System.out.println("Spare data formate: Filling missing values with 0");
+        br = BatchFileUtils.getBufferedReader(file);
+        String linep = null;
+        while ((linep = br.readLine()) != null) {
+            String[] l = linep.split("(\\s|,)");
+            if (l.length != 3) {
+                throw new RuntimeException("Malformed input format: " + linep);
+            }
+
+            long time = Long.parseLong(l[1]);
+            if (minTime > time) {
+                minTime = time;
+            }
+            if (maxTime < time) {
+                maxTime = time;
+            }
+            timeStamps.add(time);
+        }
+        System.out.println("MinTime " + minTime + ", maxTime " + maxTime);
 
         // Parse the input timeseries.
-        br = BatchFileUtils.getBufferedReader(file);
-
         String line = null;
         int cnt = 0;
+        long prevTime = minTime;
         TimeSeries ts = null;
+        br = BatchFileUtils.getBufferedReader(file);
+
         while ((line = br.readLine()) != null) {
             String[] l = null;
 
@@ -76,16 +101,36 @@ public class BatchFileInputProcessor implements InputProcessor {
 
             if (ts == null || !ts.meta.id.equals(k)) {
                 if (ts != null) {
+                    // Fill missing values until the last time stamp
+                    for (long i = prevTime + 1; i <= maxTime; i++ ) {
+                        if (timeStamps.contains(i)) {
+                            ts.append(i, 0);
+                        }
+                    }
                     ProcessableObject po = ProcessableObjectFactory.create(ts, p);
                     po.process();
                 }
-                ts = new TimeSeries(time, val);
+                ts = new TimeSeries();
                 ts.meta.fileName = k;
                 ts.meta.id = k;
                 ts.meta.name = k;
-            } else {
-                ts.append(time, val);
+                prevTime = minTime;
             }
+
+            // Fill missing values with 0's
+            if (time - prevTime > 0) {
+                int i = 0;
+                for ( ; i < (time - prevTime); i++) {
+                    if (timeStamps.contains(prevTime+i)) {
+                        ts.append(prevTime+i, 0);
+                    }
+                }
+                prevTime += i;
+            }
+
+            // Add real data
+            ts.append(time, val);
+            prevTime++;
 
             if (++cnt % 1000000 == 0) {
                 System.out.print("Lines processed " + cnt++ + "\n");
