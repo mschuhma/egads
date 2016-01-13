@@ -27,23 +27,20 @@ public class StreamUtils {
 
     public static BufferedReader getBufferedReader(String file) throws IOException{
 
-        BufferedReader br = null;
-
         if (file.endsWith(".gz")) {
             GZIPInputStream gzip = new GZIPInputStream(new FileInputStream(file));
-            br = new BufferedReader(new InputStreamReader(gzip));
+            return new BufferedReader(new InputStreamReader(gzip));
         }
 
-        if (file.endsWith(".xz")) {
+        else if (file.endsWith(".xz")) {
             XZInputStream xz = new XZInputStream(new FileInputStream(file));
-            br = new BufferedReader(new InputStreamReader(xz));
+            return new BufferedReader(new InputStreamReader(xz));
         }
 
         else {
-            br = new BufferedReader(new FileReader(file));
+            return new BufferedReader(new FileReader(file));
         }
 
-        return br;
     }
 
     public static BufferedWriter getPermanentOutputWriter() throws IOException{
@@ -55,24 +52,19 @@ public class StreamUtils {
 
     public static BufferedWriter getBufferedWriter(String file) throws IOException {
 
-        BufferedWriter bw = null;
-
-
         if (file.endsWith(".gz")) {
             GZIPOutputStream stream = new GZIPOutputStream(new FileOutputStream(file));
-            bw = new BufferedWriter(new OutputStreamWriter(stream));
+            return new BufferedWriter(new OutputStreamWriter(stream));
         }
 
-        if (file.endsWith(".xz")) {
+        else if (file.endsWith(".xz")) {
             XZOutputStream stream = new XZOutputStream(new FileOutputStream(file), new LZMA2Options());
-            bw = new BufferedWriter(new OutputStreamWriter(stream));
+            return new BufferedWriter(new OutputStreamWriter(stream));
         }
 
         else {
-            bw = new BufferedWriter(new FileWriter(file));
+            return new BufferedWriter(new FileWriter(file));
         }
-
-        return bw;
 
     }
 
