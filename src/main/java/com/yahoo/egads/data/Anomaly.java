@@ -233,6 +233,23 @@ public class Anomaly implements JsonAble {
         return str.toString();
     }
 
+    // Supports the file output format.
+    public String toFileString() {
+        String FS = "\t";
+        StringBuffer str = new StringBuffer();
+        for (Interval i : intervals) {
+            str.append(i.utime + FS +
+                       metricMetaData.name + FS +
+                       metricMetaData.fileName + FS +
+                       modelName + FS +
+                       i.expectedVal + FS +
+                       i.actualVal + FS +
+                       printArray(i.anomalyScore) + FS +
+                       printArray(i.thresholdScore) + printDebugIsAnomaly(i.isAnomaly) + "\n");
+        }
+        return str.toString();
+    }
+
     // Supports the legacy EGADS perl version.
     public String toPerlString() {
         StringBuffer str = new StringBuffer();

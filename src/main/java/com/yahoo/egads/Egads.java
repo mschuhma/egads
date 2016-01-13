@@ -2,10 +2,13 @@
 
 package com.yahoo.egads;
 
+import java.io.BufferedWriter;
 import java.util.Properties;
 import java.io.FileInputStream;
 import java.io.InputStream;
+
 import com.yahoo.egads.utilities.*;
+
 import java.io.File;
 
 /*
@@ -24,6 +27,7 @@ import java.io.File;
  */
 
 public class Egads {
+
     public static void main(String[] args) throws Exception {
 
         if (args.length == 0) {
@@ -37,28 +41,30 @@ public class Egads {
         String config = args[0];
         File f = new File(config);
         boolean isRegularFile = f.exists();
-        
+
         if (isRegularFile) {
             InputStream is = new FileInputStream(config);
             p.load(is);
         } else {
-        	FileUtils.initProperties(config, p);
+            FileUtils.initProperties(config, p);
         }
-        
+
         // Set the input type.
         InputProcessor ip = null;
-        System.out.println("INPUT " + p.getProperty("INPUT"));
+
         if (p.getProperty("INPUT") == null || p.getProperty("INPUT").equals("CSV")) {
             ip = new FileInputProcessor(args[1]);
-        }
-        else if (p.getProperty("INPUT").equals("BATCH")) {
+        } else if (p.getProperty("INPUT").equals("BATCH")) {
             ip = new BatchFileInputProcessor(args[1]);
-        }
-        else {
+        } else {
             ip = new StdinProcessor();
         }
-        
+
         // Process the input the we received (either STDIN or as a file).
         ip.processInput(p);
+
+        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
+            StreamUtils.getPermanentOutputWriter().close();
+        }
     }
 }

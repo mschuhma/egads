@@ -10,9 +10,11 @@ package com.yahoo.egads.utilities;
 
 import com.yahoo.egads.control.ProcessableObject;
 import com.yahoo.egads.control.ProcessableObjectFactory;
+import com.yahoo.egads.data.MetricMeta;
 import com.yahoo.egads.data.TimeSeries;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStreamReader;
@@ -33,6 +35,8 @@ time_series_name \t datetime \t value</br>
  */
 
 public class BatchFileInputProcessor implements InputProcessor {
+
+    protected org.apache.logging.log4j.Logger logger;
 
     private String file = null;
     private BufferedReader br = null;
@@ -55,10 +59,12 @@ public class BatchFileInputProcessor implements InputProcessor {
         // Parse the input timeseries.
         br = StreamUtils.getBufferedReader(file);
 
-        Map<String, TimeSeries> tsMap = new HashMap<String, TimeSeries>();
         String line = null;
-        while ( (line = br.readLine()) != null) {
+        int cnt = 0;
+        TimeSeries ts = null;
+        while ((line = br.readLine()) != null) {
             String[] l = null;
+
             l = line.split(COLUMN_DELIMITER);
             if (l.length != 3)
                 l = line.split("\\s");
@@ -68,22 +74,26 @@ public class BatchFileInputProcessor implements InputProcessor {
             String k = l[0];
             long time = Long.parseLong(l[1]);
             float val = Float.parseFloat(l[2]);
-            if (tsMap.containsKey(k))
-                tsMap.get(l[0]).append(time, val);
-            else {
-                TimeSeries ts = new TimeSeries();
+
+            if (ts == null || !ts.meta.id.equals(k)) {
+                if (ts != null) {
+                    ProcessableObject po = ProcessableObjectFactory.create(ts, p);
+                    po.process();
+                }
+                ts = new TimeSeries(time, val);
                 ts.meta.fileName = k;
                 ts.meta.id = k;
                 ts.meta.name = k;
-                ts.append(time,val);
-                tsMap.put(k, ts);
+            }
+            else
+                ts.append(time, val);
+
+            if (++cnt % 1000000 == 0) {
+                System.out.print("Lines processed " + cnt++ + "\n");
+                if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE"))
+                    StreamUtils.getPermanentOutputWriter().flush();
             }
         }
         br.close();
-
-        for (TimeSeries ts : tsMap.values()) {
-            ProcessableObject po = ProcessableObjectFactory.create(ts, p);
-            po.process();
-        }
     }
 }
