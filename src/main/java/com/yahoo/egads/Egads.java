@@ -62,10 +62,5 @@ public class Egads {
 
         // Process the input the we received (either STDIN or as a file).
         ip.processInput(p);
-
-        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
-            StreamUtils.getPermanentOutputWriter().close();
-            System.out.println("EGADS output written to " + StreamUtils.PERMANENT_OUTPUT_FILE);
-        }
     }
 }

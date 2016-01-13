@@ -1,6 +1,5 @@
 package com.yahoo.egads.utilities;
 
-import org.tukaani.xz.FilterOptions;
 import org.tukaani.xz.LZMA2Options;
 import org.tukaani.xz.XZInputStream;
 import org.tukaani.xz.XZOutputStream;
@@ -20,10 +19,10 @@ import java.util.zip.GZIPOutputStream;
 /**
  * Created by mschuhmacher on 1/13/16.
  */
-public class StreamUtils {
+public class BatchFileUtils {
 
     private static BufferedWriter outputWriter = null;
-    public static final String PERMANENT_OUTPUT_FILE = "egads_output.gz";
+    public static String outputFileName = null;
 
     public static BufferedReader getBufferedReader(String file) throws IOException{
 
@@ -43,10 +42,30 @@ public class StreamUtils {
 
     }
 
-    public static BufferedWriter getPermanentOutputWriter() throws IOException{
+    public static void closePermanentOutputWriter(){
+        if (outputWriter != null)
+            try {
+                outputWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
 
-        if (outputWriter == null)
-            outputWriter = getBufferedWriter(PERMANENT_OUTPUT_FILE);
+    public static BufferedWriter getPermanentOutputWriter() throws RuntimeException{
+
+        if (outputWriter == null) {
+            throw new RuntimeException("PermanentOutputWriter has not been initialized yet");
+        }
+        return outputWriter;
+    }
+
+
+    public static BufferedWriter getOrCreatePermanentOutputWriter(String file) throws IOException{
+
+        if (outputWriter == null) {
+            outputWriter = getBufferedWriter(file);
+            outputFileName = file;
+        }
         return outputWriter;
     }
 

@@ -9,13 +9,12 @@
 package com.yahoo.egads.control;
 
 import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
 import com.yahoo.egads.data.Anomaly;
 import com.yahoo.egads.data.TimeSeries;
 import com.yahoo.egads.utilities.GUIUtils;
-import com.yahoo.egads.utilities.StreamUtils;
+import com.yahoo.egads.utilities.BatchFileUtils;
 
 import java.util.Properties;
 
@@ -65,7 +64,7 @@ public class DetectAnomalyProcessable implements ProcessableObject {
                     System.out.print(anomaly.toPlotString());
                 }
             } else if (config.getProperty("OUTPUT") != null && config.getProperty("OUTPUT").equals("FILE")) {
-                BufferedWriter out = StreamUtils.getPermanentOutputWriter();
+                BufferedWriter out = BatchFileUtils.getPermanentOutputWriter();
                 for (Anomaly anomaly : anomalyList) {
                     out.write(anomaly.toFileString());
                 }

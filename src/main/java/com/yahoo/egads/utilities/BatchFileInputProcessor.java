@@ -10,20 +10,11 @@ package com.yahoo.egads.utilities;
 
 import com.yahoo.egads.control.ProcessableObject;
 import com.yahoo.egads.control.ProcessableObjectFactory;
-import com.yahoo.egads.data.MetricMeta;
 import com.yahoo.egads.data.TimeSeries;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
 import java.util.Properties;
-import java.util.zip.GZIPInputStream;
 
 
 /*
@@ -39,6 +30,7 @@ public class BatchFileInputProcessor implements InputProcessor {
     protected org.apache.logging.log4j.Logger logger;
 
     private String file = null;
+    private String fileName = null;
     private BufferedReader br = null;
     private boolean fillMissing = false;
 
@@ -46,6 +38,8 @@ public class BatchFileInputProcessor implements InputProcessor {
 
     public BatchFileInputProcessor(String file) {
         this.file = file;
+        this.fileName = (new File(file)).getName() + "_egads_output.gz";
+
     }
 
     public void processInput(Properties p) throws Exception {
@@ -55,9 +49,12 @@ public class BatchFileInputProcessor implements InputProcessor {
             fillMissing = true;
             // TODO implement fill missing values with zero
         }
+        // Initialize output writer
+        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE"))
+            BatchFileUtils.getOrCreatePermanentOutputWriter(this.fileName);
 
         // Parse the input timeseries.
-        br = StreamUtils.getBufferedReader(file);
+        br = BatchFileUtils.getBufferedReader(file);
 
         String line = null;
         int cnt = 0;
@@ -66,10 +63,12 @@ public class BatchFileInputProcessor implements InputProcessor {
             String[] l = null;
 
             l = line.split(COLUMN_DELIMITER);
-            if (l.length != 3)
+            if (l.length != 3) {
                 l = line.split("\\s");
-            if (l.length != 3)
+            }
+            if (l.length != 3) {
                 throw new RuntimeException("Malformed input format: " + line);
+            }
 
             String k = l[0];
             long time = Long.parseLong(l[1]);
@@ -84,16 +83,25 @@ public class BatchFileInputProcessor implements InputProcessor {
                 ts.meta.fileName = k;
                 ts.meta.id = k;
                 ts.meta.name = k;
-            }
-            else
+            } else {
                 ts.append(time, val);
+            }
 
             if (++cnt % 1000000 == 0) {
                 System.out.print("Lines processed " + cnt++ + "\n");
-                if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE"))
-                    StreamUtils.getPermanentOutputWriter().flush();
+                if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
+                    BatchFileUtils.getOrCreatePermanentOutputWriter(this.fileName).flush();
+                }
             }
         }
+        // Process last timeseries
+        ProcessableObject po = ProcessableObjectFactory.create(ts, p);
+        po.process();
+
         br.close();
+        if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
+            BatchFileUtils.closePermanentOutputWriter();
+            System.out.println("Output written to " + BatchFileUtils.outputFileName);
+        }
     }
 }
