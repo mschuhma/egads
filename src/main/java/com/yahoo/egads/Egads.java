@@ -65,6 +65,7 @@ public class Egads {
 
         if (p.getProperty("OUTPUT") != null && p.getProperty("OUTPUT").equals("FILE")) {
             StreamUtils.getPermanentOutputWriter().close();
+            System.out.println("EGADS output written to " + StreamUtils.PERMANENT_OUTPUT_FILE);
         }
     }
 }

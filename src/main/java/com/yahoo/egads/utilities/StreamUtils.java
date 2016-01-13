@@ -23,6 +23,7 @@ import java.util.zip.GZIPOutputStream;
 public class StreamUtils {
 
     private static BufferedWriter outputWriter = null;
+    public static final String PERMANENT_OUTPUT_FILE = "egads_output.gz";
 
     public static BufferedReader getBufferedReader(String file) throws IOException{
 
@@ -48,7 +49,7 @@ public class StreamUtils {
     public static BufferedWriter getPermanentOutputWriter() throws IOException{
 
         if (outputWriter == null)
-            outputWriter = getBufferedWriter("egads_output.gz");
+            outputWriter = getBufferedWriter(PERMANENT_OUTPUT_FILE);
         return outputWriter;
     }
 
